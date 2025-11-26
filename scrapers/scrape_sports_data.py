@@ -249,11 +249,11 @@ def save_footystats_events(events_footystats, session):
                 'odds_ft_under35': float(event['stats'].get('odds_ft_under35', "")) if event['stats'].get('odds_ft_under35', "") != 'N/A' else None,
             }
 
-            # Check if same match_uid exists to ignore saving (date +-1 day)
+            # Check if same match_uid exists to ignore saving (date +-3 days)
             find_event_by_match_uid = session.query(SportEventFootystats).filter(
                 SportEventFootystats.match_uid == event['match_uid'],
-                SportEventFootystats.time >= event['time'] - timedelta(days=1),
-                SportEventFootystats.time <= event['time'] + timedelta(days=1)
+                SportEventFootystats.time >= event['time'] - timedelta(days=3),
+                SportEventFootystats.time <= event['time'] + timedelta(days=3)
             ).first()
             if find_event_by_match_uid:
                 # Check if exists, but have different time
@@ -269,8 +269,8 @@ def save_footystats_events(events_footystats, session):
                 find_event_by_match_slug = session.query(SportEventFootystats).filter(
                     or_(SportEventFootystats.match_uid == None, SportEventFootystats.match_uid != event['match_uid']),
                     SportEventFootystats.match_slug == event['match_slug'],
-                    SportEventFootystats.time >= event['time'] - timedelta(days=1),
-                    SportEventFootystats.time <= event['time'] + timedelta(days=1)
+                    SportEventFootystats.time >= event['time'] - timedelta(days=3),
+                    SportEventFootystats.time <= event['time'] + timedelta(days=3)
                 ).first()
                 if find_event_by_match_slug:
                     logger.debug(f"Event {event['match_uid']} ({event['teams']}) already exists")
