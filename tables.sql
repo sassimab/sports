@@ -98,13 +98,18 @@ CREATE TABLE sport_event_bookmaker (
     odds_ft_x FLOAT DEFAULT NULL,
     odds_ft_2 FLOAT DEFAULT NULL,
     odds_btts_yes FLOAT DEFAULT NULL,
-    odds_ft_over05 FLOAT DEFAULT NULL,
+    odds_btts_no FLOAT DEFAULT NULL,
+    odds_dc_1x FLOAT DEFAULT NULL,
+    odds_dc_12 FLOAT DEFAULT NULL,
+    odds_dc_x2 FLOAT DEFAULT NULL,
     odds_ft_over15 FLOAT DEFAULT NULL,
     odds_ft_over25 FLOAT DEFAULT NULL,
     odds_ft_over35 FLOAT DEFAULT NULL,
+    odds_ft_over45 FLOAT DEFAULT NULL,
     odds_ft_under15 FLOAT DEFAULT NULL,
     odds_ft_under25 FLOAT DEFAULT NULL,
     odds_ft_under35 FLOAT DEFAULT NULL,
+    odds_ft_under45 FLOAT DEFAULT NULL,
     score_fh VARCHAR(30) DEFAULT NULL,
     score_2h VARCHAR(30) DEFAULT NULL,
     score_ft VARCHAR(30) DEFAULT NULL,
@@ -129,6 +134,16 @@ ALTER TABLE sport_event_bookmaker
     MODIFY score_2h VARCHAR(30);
 ALTER TABLE sport_event_bookmaker ADD COLUMN location VARCHAR(255) DEFAULT NULL AFTER team_b;
 ALTER TABLE sport_event_bookmaker ADD COLUMN round VARCHAR(255) DEFAULT NULL AFTER location;
+-- ALTER TABLE queries to remove over 0.5 and add double chance and btts_no and over 4.5 (while respecting order)
+ALTER TABLE sport_event_bookmaker DROP COLUMN odds_ft_over05;
+ALTER TABLE sport_event_bookmaker ADD COLUMN odds_btts_no FLOAT DEFAULT NULL AFTER odds_btts_yes;
+ALTER TABLE sport_event_bookmaker ADD COLUMN odds_dc_1x FLOAT DEFAULT NULL AFTER odds_btts_no;
+ALTER TABLE sport_event_bookmaker ADD COLUMN odds_dc_12 FLOAT DEFAULT NULL AFTER odds_dc_1x;
+ALTER TABLE sport_event_bookmaker ADD COLUMN odds_dc_x2 FLOAT DEFAULT NULL AFTER odds_dc_12;
+ALTER TABLE sport_event_bookmaker ADD COLUMN odds_ft_over45 FLOAT DEFAULT NULL AFTER odds_ft_over35;
+ALTER TABLE sport_event_bookmaker ADD COLUMN odds_ft_under45 FLOAT DEFAULT NULL AFTER odds_ft_under35;
+
+
 
 CREATE TABLE sport_event_mapping (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,

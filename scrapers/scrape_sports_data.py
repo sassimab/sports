@@ -394,20 +394,102 @@ def scrape_22bet_linefeed(sport='', starts_in=15):
         # print(response_json)
         # Cleaning data and returning necessary information
         data = []
-        for event in response_json['Value']:
+        for event_feed in response_json['Value']:
             event = {
-                'country': event.get('CN', None),
-                'league_name': event.get('L', None),
-                'league_id': event.get('LI', None),
-                'game_id': event.get('I', None),
-                'team_a': event.get('O1', '').strip(),
-                'team_b': event.get('O2', '').strip(),
-                'extra_name': event.get('DI', None),
-                'start_date': event.get('S', None), # in format: 1756393200
-                'location': event.get('MIO', None).get('Loc', None) if 'MIO' in event and 'Loc' in event.get('MIO') else None,
-                'round': event.get('MIO', None).get('TSt', None) if 'MIO' in event and 'TSt' in event.get('MIO') else None,
-                'sport': event.get('SE', None)
+                'country': event_feed.get('CN', None),
+                'league_name': event_feed.get('L', None),
+                'league_id': event_feed.get('LI', None),
+                'game_id': event_feed.get('I', None),
+                'team_a': event_feed.get('O1', '').strip(),
+                'team_b': event_feed.get('O2', '').strip(),
+                'extra_name': event_feed.get('DI', None),
+                'start_date': event_feed.get('S', None), # in format: 1756393200
+                'location': event_feed.get('MIO', None).get('Loc', None) if 'MIO' in event_feed and 'Loc' in event_feed.get('MIO') else None,
+                'round': event_feed.get('MIO', None).get('TSt', None) if 'MIO' in event_feed and 'TSt' in event_feed.get('MIO') else None,
+                'sport': event_feed.get('SE', None),
+                'odds': {},
             }
+
+            # Gather Odds if found
+            # ODDS FOUND IN THIS FORMAT :
+            #   "E": [
+            #     { "C": 1.291, "CV": "1.291", "G": 1, "T": 1 },  # 1x2 - Home Win
+            #     { "C": 6.7, "CV": "6.7", "G": 1, "T": 2 },      # 1x2 - Draw
+            #     { "C": 10.9, "CV": "10.9", "G": 1, "T": 3 },    # 1x2 - Away Win
+            #     { "C": 1.53, "CV": "1.53", "G": 19, "T": 180 }, # BTTS Yes
+            #     { "C": 2.373, "CV": "2.373", "G": 19, "T": 181 }, # BTTS No
+            #     { "C": 1.065, "CV": "1.065", "G": 8, "T": 4 },    # Double Chance - 1X
+            #     { "C": 1.141, "CV": "1.141", "G": 8, "T": 5 },    # Double Chance - 12
+            #     { "C": 3.98, "CV": "3.98", "G": 8, "T": 6 },      # Double Chance - X2
+            #   ],
+            #   "AE": [
+            #     {
+            #       "G": 2,     # 2 means Asian Handicap
+            #       "ME": [
+            #         { "C": 1.067, "CV": "1.067", "G": 2, "T": 7 },
+            #         { "C": 6, "CV": "6", "G": 2, "T": 8 },
+            #       ]
+            #     },
+            #     {
+            #       "G": 17,    # 17 means Total Goals (Over/Under)
+            #       "ME": [
+            #         { "C": 1.24, "CV": "1.24", "G": 17, "P": 2.5, "T": 9 },  # Over 2.5       [ T=9 (Over) / P=2.5 ]
+            #         { "C": 3.56, "CV": "3.56", "G": 17, "P": 2.5, "T": 10 }, # Under 2.5      [ T=10 (Under) / P=2.5 ]
+            #       ]
+            #     }
+            #   ],
+
+            # Find and process Regular Time odds entry
+            if event_feed.get('E') and len(event_feed.get('E')) > 0:
+                odds_E = event_feed.get('E')
+                for odd in odds_E:
+                    if not odd.get('G') or not odd.get('T'):
+                        continue
+                    # 1x2 - Home Win
+                    if odd.get('G') == 1 and odd.get('T') == 1:
+                        event['odds'].setdefault('ft_1', odd.get('C'))
+                    # 1x2 - Draw
+                    if odd.get('G') == 1 and odd.get('T') == 2:
+                        event['odds'].setdefault('ft_x', odd.get('C'))
+                    # 1x2 - Away Win
+                    if odd.get('G') == 1 and odd.get('T') == 3:
+                        event['odds'].setdefault('ft_2', odd.get('C'))
+                    # BTTS Yes
+                    if odd.get('G') == 19 and odd.get('T') == 180:
+                        event['odds'].setdefault('btts_yes', odd.get('C'))
+                    # BTTS No
+                    if odd.get('G') == 19 and odd.get('T') == 181:
+                        event['odds'].setdefault('btts_no', odd.get('C'))
+                    # Double Chance - 1X
+                    if odd.get('G') == 8 and odd.get('T') == 4:
+                        event['odds'].setdefault('dc_1x', odd.get('C'))
+                    # Double Chance - 12
+                    if odd.get('G') == 8 and odd.get('T') == 5:
+                        event['odds'].setdefault('dc_12', odd.get('C'))
+                    # Double Chance - 2X
+                    if odd.get('G') == 8 and odd.get('T') == 6:
+                        event['odds'].setdefault('dc_x2', odd.get('C'))
+
+            # Find and process Over/Under data
+            if event_feed.get('AE') and len(event_feed.get('AE')) > 0:
+                for odds_AE_group in event_feed.get('AE'):
+                    if odds_AE_group.get('G') == 17 and 'ME' in odds_AE_group:
+                        odds_OverUnder = odds_AE_group.get('ME', [])
+                        for odd in odds_OverUnder:
+                            # odd contains G (game type), T (type), C (coefficient), etc.
+                            # Extract Under/Over values and coefficients
+                            if not odd.get('P') or not odd.get('C'):
+                                # logging.warning(f"Skipping Over/Under odd with missing P or C: {odd}")
+                                continue
+                            # T=9: Over, T=10: Under
+                            # P contains the line value (e.g., 2.5)
+                            odd_overunder_key = "over" if odd.get('T') == 9 else "under" if odd.get('T') == 10 else None
+                            odd_overunder_total = str(odd.get('P')).replace('.', '')
+                            if odd_overunder_key and odd_overunder_total:
+                                odd_key = f"ft_{odd_overunder_key}{odd_overunder_total}"
+                                event['odds'].setdefault(odd_key, odd.get('C'))
+
+            # cleaning & blacklisting events : URL, Start Date, Countries, Extra Names
             event['match_url'] = f"/line/{sport}/{event['league_id']}/{event['game_id']}"
             if event.get('start_date'):
                 event['start_date'] = datetime.fromtimestamp(event['start_date'], tz=timezone.utc).replace(second=0, microsecond=0)
@@ -422,6 +504,15 @@ def scrape_22bet_linefeed(sport='', starts_in=15):
                 continue
             if event['team_b'] == "" or "special bets" in event['team_a'].lower():
                 continue
+            
+            # FOR DEBUGGING
+            # if not event['team_a'] in ['Liverpool',' Ludogorets 1945']:
+            #     continue
+            # print(f"Processing event: {event['league_id']}/{event['game_id']} {event['country']} - {event['league_name']}")
+            # print(f"Teams: {event['team_a']} vs {event['team_b']}")
+            # print(f"Odds: {json.dumps(event['odds'], indent=2)}")
+            # print("\n----------------------------------------")
+
             data.append(event)
         return data
     except requests.RequestException as e:
@@ -446,6 +537,12 @@ def save_22bet_event(session, event={}, sport='football'):
             'location': event['location'],
             'round': event['round'],
         }
+        if event.get('odds') and len(event['odds']) > 1:
+            logger.info(f"Processing odds for event {event['league_id']}/{event['game_id']}: {len(event['odds'])} odds found")
+            for odd in event['odds']:
+                logger.info(f"  Odd: {odd} = {event['odds'][odd]}")
+                if odd in ['ft_1', 'ft_x', 'ft_2', 'btts_yes', 'btts_no', 'dc_1x', 'dc_x2', 'dc_12', 'ft_over15','ft_under15','ft_over25','ft_under25','ft_over35','ft_under35','ft_over45','ft_under45']:
+                    event_dict[f"odds_{odd}"] = event['odds'][odd]
         event_model_id = None
         # Check if same match_uid exists to ignore saving
         existing_event = session.query(SportEventBookmaker).filter(SportEventBookmaker.bookmaker == bookmaker, SportEventBookmaker.league_id == event['league_id'], SportEventBookmaker.game_id == event['game_id']).first()
@@ -529,7 +626,7 @@ def match_footystats_events(unmatched_events_footystats, events_22bet, session):
                 if int(event_22bet['league_id']) == int(e.sport_event_bookmaker.league_id) and int(event_22bet['game_id']) == int(e.sport_event_bookmaker.game_id):
                     logger.debug(f"Event {event_22bet['league_id']}/{event_22bet['game_id']} ({event_22bet['team_a']} - {event_22bet['team_b']}) already matched")
                     already_matched = True
-                    break
+                    continue
             if not already_matched:
                 events_22bet_by_country.setdefault(normalize_lower(event_22bet['country']).replace(" ", "-").replace("republic-of-", ""), []).append(event_22bet)
         for country in events_22bet_by_country:
