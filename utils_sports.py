@@ -151,6 +151,9 @@ def get_unmatched_footystats_events(session, starts_in=15):
             isouter=True
         ).filter(
             SportEventMapping.id.is_(None),
+            SportEventFootystats.match_uid.isnot(None),
+            SportEventFootystats.team_a.isnot(None),
+            SportEventFootystats.team_b.isnot(None),
             SportEventFootystats.time > datetime.now(timezone.utc) - timedelta(minutes=starts_in),
             SportEventFootystats.time < datetime.now(timezone.utc) + timedelta(minutes=starts_in)
         ).all()

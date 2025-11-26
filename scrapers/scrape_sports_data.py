@@ -484,7 +484,7 @@ def create_event_mapping(session, event_footystats, event_22bet_id, step=""):
         # Check if same match_uid exists to ignore saving
         existing_event_mapping = session.query(SportEventMapping).filter(SportEventMapping.sport_event_footystats_id == event_footystats.id, SportEventMapping.sport_event_bookmaker_id == event_22bet_id).first()
         if existing_event_mapping:
-            logger.debug(f"Event Mapping FS#{event_footystats.id} ({event_footystats.team_a} - {event_footystats.team_b}) with {event_22bet_id} already exists")
+            logger.info(f"Event Mapping FS#{event_footystats.id} ({event_footystats.team_a} - {event_footystats.team_b}) with {event_22bet_id} already exists")
             return existing_event_mapping.id
         # Create a new SportEventMapping
         event_mapping = SportEventMapping(
@@ -503,7 +503,7 @@ def create_event_mapping(session, event_footystats, event_22bet_id, step=""):
         session.commit()
         return event_mapping.id
     except Exception as e:
-        logger.error(f"Error creating event mapping: {e.__class__.__name__}: {e}")
+        logger.error(f"Error creating event mapping: {e}", exc_info=True)
         session.rollback()
 
 
@@ -648,7 +648,7 @@ def match_footystats_events(unmatched_events_footystats, events_22bet, session):
                             event_22bet_id = save_22bet_event(session=session, event=event_22bet, sport="football")
                             if event_22bet_id:
                                 # Create a new SportEventMapping
-                                logger.info(f"Step_2 | Creating event mapping for {event_footystats.id} country=<{event_footystats.country}> competition=<{event_footystats.competition}> teams=<{event_footystats.team_a} - {event_footystats.team_b}> event_22bet_id=<{event_22bet_id}>")
+                                logger.info(f"Step_2 | Creating event mapping for {event_footystats.match_uid} country=<{event_footystats.country}> competition=<{event_footystats.competition}> teams=<{event_footystats.team_a} - {event_footystats.team_b}> event_22bet_id=<{event_22bet_id}>")
                                 event_mapping_id = create_event_mapping(session=session, event_footystats=event_footystats, event_22bet_id=event_22bet_id, step="2")
                             session.commit()
                         else:
