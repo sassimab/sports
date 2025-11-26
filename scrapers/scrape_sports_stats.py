@@ -29,8 +29,6 @@ from bs4 import BeautifulSoup
 import pytz
 import textdistance
 
-# Load utils_sports
-from utils_sports import *
 
 
 # Add parent directory to path for imports
@@ -39,8 +37,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from models import *
 from utils import *
-from utils_db import *
+# from utils_db import *
 from utils_ai import *
+from utils_sports import *
 
 
 # Logging setup
