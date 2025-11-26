@@ -27,15 +27,14 @@ engine = create_engine(MYSQL_CONNECTOR_STRING, echo=False, pool_pre_ping=True, p
 
 
 
-from utils_sports import *
 
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from models import *
 from utils import *
-from utils_db import *
 from utils_ai import *
+from utils_sports import *
 
 import logging
 logging.basicConfig(
@@ -43,7 +42,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler(f'log/sports/update_sports_results_{datetime.now(timezone.utc).strftime("%Y%m%d")}.log', mode='a')
+        logging.FileHandler(f'log/update_sports_results_{datetime.now(timezone.utc).strftime("%Y%m%d")}.log', mode='a')
     ]
 )
 logger = logging.getLogger(__name__)

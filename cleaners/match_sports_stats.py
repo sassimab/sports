@@ -41,7 +41,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler(f'log/sports/match_sports_stats_{datetime.now(timezone.utc).strftime("%Y%m%d")}.log', mode='a')
+        logging.FileHandler(f'log/match_sports_stats_{datetime.now(timezone.utc).strftime("%Y%m%d")}.log', mode='a')
     ]
 )
 logger = logging.getLogger(__name__)

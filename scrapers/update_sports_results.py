@@ -34,15 +34,15 @@ engine = create_engine(MYSQL_CONNECTOR_STRING, echo=False, pool_pre_ping=True, p
 
 
 
-from utils_sports import *
 
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from models import *
 from utils import *
-from utils_db import *
+# from utils_db import *
 from utils_ai import *
+from utils_sports import *
 
 import logging
 logging.basicConfig(
@@ -50,7 +50,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler(f'log/sports/update_sports_results_{datetime.now(timezone.utc).strftime("%Y%m%d")}.log', mode='a')
+        logging.FileHandler(f'log/update_sports_results_{datetime.now(timezone.utc).strftime("%Y%m%d")}.log', mode='a')
     ]
 )
 logger = logging.getLogger(__name__)
@@ -316,13 +316,12 @@ def scrape_and_save_sports_results(session):
         df['start_time'] = pd.to_datetime(df['start_time'], utc=True)
         
         for event in matched_events:
-            if event.start_time < (pd.Timestamp.now(tz='UTC') - pd.Timedelta(hours=6)):
+            if event.start_time and event.start_time.replace(tzinfo=None) < (pd.Timestamp.now(tz='UTC').tz_convert(None) - pd.Timedelta(hours=48)):
                 continue
             df.loc[len(df)] = {
                 'id': int(event.id),
                 'sport_event_footystats_id': event.sport_event_footystats_id,
                 'sport_event_bookmaker_id': event.sport_event_bookmaker_id,
-                'sport_event_id': event.sport_event_id,
                 'bkm_id': int(event.sport_event_bookmaker.id),
                 'bkm_bookmaker': event.sport_event_bookmaker.bookmaker,
                 'bkm_league_id': int(event.sport_event_bookmaker.league_id),
