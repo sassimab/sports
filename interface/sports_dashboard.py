@@ -3097,7 +3097,7 @@ try:
     
     def create_range_filter(label, key_prefix, min_val=0.0, max_val=1.0, default_min=0.0, default_max=1.0):
         """Create min/max range filter inputs"""
-        col1, col2 = st.sidebar.columns(2)
+        col1, col2 = st.columns(2)
         with col1:
             min_value = st.number_input(
                 f"{label} Min",
@@ -3123,62 +3123,58 @@ try:
         
         return min_value, max_value
     
-    # Show filters based on selected method
-    if betting_method == "BTTS at Fulltime":
-        st.sidebar.markdown("**Footystats Odds**")
+    # Show all odds filters grouped logically
+    st.sidebar.markdown("**Odds**")
+    
+    # Match Result Odds (1X2)
+    with st.sidebar.expander("🏠 Match Result Odds (Home/Draw/Away)", expanded=betting_method in ["Home Win", "Draw", "Away Win"]):
+        footystats_odds_1_min, footystats_odds_1_max = create_range_filter("Home Win Odds", "footystats_odds_1", 1.01, 20.0, 1.01, 3.0)
+        footystats_odds_x_min, footystats_odds_x_max = create_range_filter("Draw Odds", "footystats_odds_x", 1.01, 20.0, 1.01, 4.0)
+        footystats_odds_2_min, footystats_odds_2_max = create_range_filter("Away Win Odds", "footystats_odds_2", 1.01, 20.0, 1.01, 5.0)
+    
+    # BTTS Odds
+    with st.sidebar.expander("⚽ BTTS Odds", expanded=betting_method == "BTTS at Fulltime"):
         footystats_odds_btts_min, footystats_odds_btts_max = create_range_filter("BTTS Odds", "footystats_odds_btts", 1.01, 20.0, 1.01, 3.5)
-        
-    elif betting_method in ["Home Win", "Draw", "Away Win"]:
-        # Add odds filter based on specific method
-        if betting_method == "Home Win":
-            st.sidebar.markdown("**Footystats Odds**")
-            footystats_odds_1_min, footystats_odds_1_max = create_range_filter("Home Win Odds", "footystats_odds_1", 1.01, 20.0, 1.01, 3.0)
-        elif betting_method == "Draw":
-            st.sidebar.markdown("**Footystats Odds**")
-            footystats_odds_x_min, footystats_odds_x_max = create_range_filter("Draw Odds", "footystats_odds_x", 1.01, 20.0, 1.01, 4.0)
-        elif betting_method == "Away Win":
-            st.sidebar.markdown("**Footystats Odds**")
-            footystats_odds_2_min, footystats_odds_2_max = create_range_filter("Away Win Odds", "footystats_odds_2", 1.01, 20.0, 1.01, 5.0)
-        
-    elif betting_method in ["Over 1.5 Goals", "Over 2.5 Goals", "Over 3.5 Goals"]:
-        # Add odds filter based on specific method (using footystats odds)
-        if betting_method == "Over 1.5 Goals":
-            st.sidebar.markdown("**Footystats Odds**")
-            footystats_odds_over15_min, footystats_odds_over15_max = create_range_filter("Over 1.5 Odds", "footystats_odds_over15", 1.01, 20.0, 1.0, 2.0)
-        elif betting_method == "Over 2.5 Goals":
-            st.sidebar.markdown("**Footystats Odds**")
-            footystats_odds_over25_min, footystats_odds_over25_max = create_range_filter("Over 2.5 Odds", "footystats_odds_over25", 1.01, 20.0, 1.0, 2.5)
-        elif betting_method == "Over 3.5 Goals":
-            st.sidebar.markdown("**Footystats Odds**")
-            footystats_odds_over35_min, footystats_odds_over35_max = create_range_filter("Over 3.5 Odds", "footystats_odds_over35", 1.01, 20.0, 1.0, 3.5)
-        
-    elif betting_method == "Over 0.5 Goals HT":
-        st.sidebar.markdown("**Footystats Odds**")
-        footystats_odds_over05_min, footystats_odds_over05_max = create_range_filter("Over 0.5 HT Odds", "footystats_odds_over05", 1.01, 20.0, 1.0, 1.8)
-        
-    st.sidebar.markdown("**Team Performance**")
-    ppg_a_min, ppg_a_max = create_range_filter("Home PPG", "ppg_a", 0.0, 3.0, 0.0, 3.0)
-    ppg_b_min, ppg_b_max = create_range_filter("Away PPG", "ppg_b", 0.0, 3.0, 0.0, 3.0)
-    ppg_diff_min, ppg_diff_max = create_range_filter("PPG Difference", "ppg_diff", -3.0, 3.0, -3.0, 3.0)
     
-    st.sidebar.markdown("**Expected Goals**")
-    xg_a_min, xg_a_max = create_range_filter("Home XG", "team_a_xg", 0.0, 5.0, 0.0, 3.0)
-    xg_b_min, xg_b_max = create_range_filter("Away XG", "team_b_xg", 0.0, 5.0, 0.0, 3.0)
-    xg_diff_min, xg_diff_max = create_range_filter("XG Difference", "xg_diff", -5.0, 5.0, -5.0, 5.0)
+    # Goals Odds (Overs)
+    with st.sidebar.expander("🥅 Goals Odds (Overs)", expanded=betting_method.startswith("Over")):
+        footystats_odds_over15_min, footystats_odds_over15_max = create_range_filter("Over 1.5 Odds", "footystats_odds_over15", 1.01, 20.0, 1.01, 2.0)
+        footystats_odds_over25_min, footystats_odds_over25_max = create_range_filter("Over 2.5 Odds", "footystats_odds_over25", 1.01, 20.0, 1.01, 2.5)
+        footystats_odds_over35_min, footystats_odds_over35_max = create_range_filter("Over 3.5 Odds", "footystats_odds_over35", 1.01, 20.0, 1.01, 3.5)
+        footystats_odds_over05_min, footystats_odds_over05_max = create_range_filter("Over 0.5 HT Odds", "footystats_odds_over05", 1.01, 20.0, 1.01, 1.8)
+        
+    st.sidebar.markdown("**Performance**")
+    # Team Performance
+    with st.sidebar.expander("👥 Team Performance", expanded=False):
+        ppg_a_min, ppg_a_max = create_range_filter("Home PPG", "ppg_a", 0.0, 3.0, 0.0, 3.0)
+        ppg_b_min, ppg_b_max = create_range_filter("Away PPG", "ppg_b", 0.0, 3.0, 0.0, 3.0)
+        ppg_diff_min, ppg_diff_max = create_range_filter("PPG Difference", "ppg_diff", -3.0, 3.0, -3.0, 3.0)
     
-    st.sidebar.markdown("**Match Potentials**")
-    avg_potential_min, avg_potential_max = create_range_filter("Avg Potential", "avg_potential", 0.0, 10.0, 0.0, 10.0)
-    btts_potential_min, btts_potential_max = create_range_filter("BTTS Potential", "btts_potential", 0.0, 1.0, 0.0, 1.0)
-    o15_min, o15_max = create_range_filter("Over 1.5 Potential", "o15_potential", 0.0, 1.0, 0.0, 1.0)
-    o25_min, o25_max = create_range_filter("Over 2.5 Potential", "o25_potential", 0.0, 1.0, 0.0, 1.0)
-    o35_min, o35_max = create_range_filter("Over 3.5 Potential", "o35_potential", 0.0, 1.0, 0.0, 1.0)
+    # Expected Goals
+    with st.sidebar.expander("⚽ Expected Goals", expanded=False):
+        xg_a_min, xg_a_max = create_range_filter("Home XG", "team_a_xg", 0.0, 5.0, 0.0, 3.0)
+        xg_b_min, xg_b_max = create_range_filter("Away XG", "team_b_xg", 0.0, 5.0, 0.0, 3.0)
+        xg_diff_min, xg_diff_max = create_range_filter("XG Difference", "xg_diff", -5.0, 5.0, -5.0, 5.0)
+    
+    st.sidebar.markdown("**Potentials**")
+    # Match Potentials
+    with st.sidebar.expander("📊 Match Potentials", expanded=False):
+        avg_potential_min, avg_potential_max = create_range_filter("Avg Potential", "avg_potential", 0.0, 10.0, 0.0, 10.0)
+        btts_potential_min, btts_potential_max = create_range_filter("BTTS Potential", "btts_potential", 0.0, 1.0, 0.0, 1.0)
+        o15_min, o15_max = create_range_filter("Over 1.5 Potential", "o15_potential", 0.0, 1.0, 0.0, 1.0)
+        o25_min, o25_max = create_range_filter("Over 2.5 Potential", "o25_potential", 0.0, 1.0, 0.0, 1.0)
+        o35_min, o35_max = create_range_filter("Over 3.5 Potential", "o35_potential", 0.0, 1.0, 0.0, 1.0)
 
-    st.sidebar.markdown("**Half-Time Potentials**")
-    o05ht_min, o05ht_max = create_range_filter("Over 0.5 HT Potential", "o05ht_potential", 0.0, 1.0, 0.0, 1.0)
+    # Half-Time Potentials
+    with st.sidebar.expander("⏰ Half-Time Potentials", expanded=False):
+        o05ht_min, o05ht_max = create_range_filter("Over 0.5 HT Potential", "o05ht_potential", 0.0, 1.0, 0.0, 1.0)
     
-    st.sidebar.markdown("**BTTS-Specific Potentials**")
-    btts_fhg_min, btts_fhg_max = create_range_filter("BTTS 1H Potential", "btts_fhg", 0.0, 8.5, 0.0, 1.0)
-    btts_2hg_min, btts_2hg_max = create_range_filter("BTTS 2H Potential", "btts_2hg", 0.0, 8.5, 0.0, 1.0)
+    # BTTS-Specific Potentials
+    with st.sidebar.expander("⚽ BTTS-Specific Potentials", expanded=betting_method == "BTTS at Fulltime"):
+        btts_fhg_min, btts_fhg_max = create_range_filter("BTTS 1H Potential", "btts_fhg", 0.0, 8.5, 0.0, 1.0)
+        btts_2hg_min, btts_2hg_max = create_range_filter("BTTS 2H Potential", "btts_2hg", 0.0, 8.5, 0.0, 1.0)
+    
+    st.sidebar.markdown("___")
     
     # Build enhanced filters dictionary
     # Parse competition name from formatted string
@@ -3225,47 +3221,30 @@ try:
         'o05ht_potential_max': st.session_state.get('o05ht_max') if betting_method in ["BTTS at Fulltime", "Over 0.5 Goals HT"] else None,
     }
     
-    # Add odds filters based on betting method (only relevant filters)
-    if betting_method == "BTTS at Fulltime":
-        filters.update({
-            'footystats_odds_btts_min': st.session_state.get('footystats_odds_btts_min'),
-            'footystats_odds_btts_max': st.session_state.get('footystats_odds_btts_max')
-        })
-    elif betting_method == "Home Win":
-        filters.update({
-            'footystats_odds_1_min': st.session_state.get('footystats_odds_1_min'),
-            'footystats_odds_1_max': st.session_state.get('footystats_odds_1_max')
-        })
-    elif betting_method == "Draw":
-        filters.update({
-            'footystats_odds_x_min': st.session_state.get('footystats_odds_x_min'),
-            'footystats_odds_x_max': st.session_state.get('footystats_odds_x_max')
-        })
-    elif betting_method == "Away Win":
-        filters.update({
-            'footystats_odds_2_min': st.session_state.get('footystats_odds_2_min'),
-            'footystats_odds_2_max': st.session_state.get('footystats_odds_2_max')
-        })
-    elif betting_method == "Over 1.5 Goals":
-        filters.update({
-            'footystats_odds_over15_min': st.session_state.get('footystats_odds_over15_min'),
-            'footystats_odds_over15_max': st.session_state.get('footystats_odds_over15_max')
-        })
-    elif betting_method == "Over 2.5 Goals":
-        filters.update({
-            'footystats_odds_over25_min': st.session_state.get('footystats_odds_over25_min'),
-            'footystats_odds_over25_max': st.session_state.get('footystats_odds_over25_max')
-        })
-    elif betting_method == "Over 3.5 Goals":
-        filters.update({
-            'footystats_odds_over35_min': st.session_state.get('footystats_odds_over35_min'),
-            'footystats_odds_over35_max': st.session_state.get('footystats_odds_over35_max')
-        })
-    elif betting_method == "Over 0.5 Goals HT":
-        filters.update({
-            'footystats_odds_over05_min': st.session_state.get('footystats_odds_over05_min'),
-            'footystats_odds_over05_max': st.session_state.get('footystats_odds_over05_max')
-        })
+    # Add ALL odds filters regardless of betting method
+    filters.update({
+        # Match Result Odds (1X2)
+        'footystats_odds_1_min': footystats_odds_1_min,
+        'footystats_odds_1_max': footystats_odds_1_max,
+        'footystats_odds_x_min': footystats_odds_x_min,
+        'footystats_odds_x_max': footystats_odds_x_max,
+        'footystats_odds_2_min': footystats_odds_2_min,
+        'footystats_odds_2_max': footystats_odds_2_max,
+        
+        # BTTS Odds
+        'footystats_odds_btts_min': footystats_odds_btts_min,
+        'footystats_odds_btts_max': footystats_odds_btts_max,
+        
+        # Goals Odds (Overs)
+        'footystats_odds_over15_min': footystats_odds_over15_min,
+        'footystats_odds_over15_max': footystats_odds_over15_max,
+        'footystats_odds_over25_min': footystats_odds_over25_min,
+        'footystats_odds_over25_max': footystats_odds_over25_max,
+        'footystats_odds_over35_min': footystats_odds_over35_min,
+        'footystats_odds_over35_max': footystats_odds_over35_max,
+        'footystats_odds_over05_min': footystats_odds_over05_min,
+        'footystats_odds_over05_max': footystats_odds_over05_max,
+    })
     
     # Update session state
     st.session_state.filters = filters
