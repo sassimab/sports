@@ -697,40 +697,83 @@ def render_strategy_backtesting_tab(df):
             st.metric("Bet Stake", f"{bet_stake:.1f}% (${initial_stake:.2f})")
     
     with col2:
-        # Show active range filters
+        # Show active range filters (only changed from defaults)
         active_filters = []
-        filter_labels = {
-            'ppg_a_min': 'Home PPG', 'ppg_a_max': 'Home PPG',
-            'ppg_b_min': 'Away PPG', 'ppg_b_max': 'Away PPG',
-            'ppg_diff_min': 'PPG Difference', 'ppg_diff_max': 'PPG Difference',
-            'team_a_xg_min': 'Home XG', 'team_a_xg_max': 'Home XG',
-            'team_b_xg_min': 'Away XG', 'team_b_xg_max': 'Away XG',
-            'xg_diff_min': 'XG Difference', 'xg_diff_max': 'XG Difference',
-            'avg_potential_min': 'Avg Potential', 'avg_potential_max': 'Avg Potential',
-            'btts_potential_min': 'BTTS Potential', 'btts_potential_max': 'BTTS Potential',
-            'o15_potential_min': 'Over 1.5 Potential', 'o15_potential_max': 'Over 1.5 Potential',
-            'o25_potential_min': 'Over 2.5 Potential', 'o25_potential_max': 'Over 2.5 Potential',
-            'o35_potential_min': 'Over 3.5 Potential', 'o35_potential_max': 'Over 3.5 Potential',
-            'o05ht_potential_min': 'Over 0.5 HT Potential', 'o05ht_potential_max': 'Over 0.5 HT Potential',
-            'btts_fhg_min': 'BTTS 1H Potential', 'btts_fhg_max': 'BTTS 1H Potential',
-            'btts_2hg_min': 'BTTS 2H Potential', 'btts_2hg_max': 'BTTS 2H Potential'
+        
+        # Define default values for comparison
+        defaults = {
+            'ppg_a_min': 0.0, 'ppg_a_max': 3.0,
+            'ppg_b_min': 0.0, 'ppg_b_max': 3.0,
+            'ppg_diff_min': -3.0, 'ppg_diff_max': 3.0,
+            'team_a_xg_min': 0.0, 'team_a_xg_max': 3.0,
+            'team_b_xg_min': 0.0, 'team_b_xg_max': 3.0,
+            'xg_diff_min': -5.0, 'xg_diff_max': 5.0,
+            'avg_potential_min': 0.0, 'avg_potential_max': 10.0,
+            'btts_potential_min': 0.0, 'btts_potential_max': 1.0,
+            'btts_fhg_min': 0.0, 'btts_fhg_max': 1.0,
+            'btts_2hg_min': 0.0, 'btts_2hg_max': 1.0,
+            'o15_potential_min': 0.0, 'o15_potential_max': 1.0,
+            'o25_potential_min': 0.0, 'o25_potential_max': 1.0,
+            'o35_potential_min': 0.0, 'o35_potential_max': 1.0,
+            'o05ht_potential_min': 0.0, 'o05ht_potential_max': 1.0,
+            'footystats_odds_btts_min': 1.01, 'footystats_odds_btts_max': 20.0,
+            'footystats_odds_1_min': 1.01, 'footystats_odds_1_max': 20.0,
+            'footystats_odds_x_min': 1.01, 'footystats_odds_x_max': 20.0,
+            'footystats_odds_2_min': 1.01, 'footystats_odds_2_max': 20.0,
+            'footystats_odds_over15_min': 1.01, 'footystats_odds_over15_max': 20.0,
+            'footystats_odds_over25_min': 1.01, 'footystats_odds_over25_max': 20.0,
+            'footystats_odds_over35_min': 1.01, 'footystats_odds_over35_max': 20.0,
+            'footystats_odds_over05_min': 1.01, 'footystats_odds_over05_max': 20.0,
         }
         
-        for filter_key, filter_value in st.session_state.filters.items():
-            if filter_key.endswith(('_min', '_max')) and filter_value is not None:
-                label = filter_labels.get(filter_key, filter_key)
-                if filter_key not in active_filters:
-                    if f"{filter_key[:-4]}_min" in st.session_state.filters and f"{filter_key[:-4]}_max" in st.session_state:
-                        min_val = st.session_state.filters.get(f"{filter_key[:-4]}_min")
-                        max_val = st.session_state.filters.get(f"{filter_key[:-4]}_max")
-                        if min_val is not None and max_val is not None:
-                            active_filters.append(f"{label}: {min_val:.2f}-{max_val:.2f}")
+        filter_labels = {
+            'ppg_a': 'Home PPG', 'ppg_b': 'Away PPG',
+            'ppg_diff': 'PPG Difference',
+            'team_a_xg': 'Home XG', 'team_b_xg': 'Away XG',
+            'xg_diff': 'XG Difference',
+            'avg_potential': 'Avg Potential',
+            'btts_potential': 'BTTS Potential',
+            'btts_fhg': 'BTTS 1H Potential', 'btts_2hg': 'BTTS 2H Potential',
+            'o15_potential': 'Over 1.5 Potential',
+            'o25_potential': 'Over 2.5 Potential',
+            'o35_potential': 'Over 3.5 Potential',
+            'o05ht_potential': 'Over 0.5 HT Potential',
+            'footystats_odds_btts': 'BTTS Odds',
+            'footystats_odds_1': 'Home Win Odds',
+            'footystats_odds_x': 'Draw Odds',
+            'footystats_odds_2': 'Away Win Odds',
+            'footystats_odds_over15': 'Over 1.5 Odds',
+            'footystats_odds_over25': 'Over 2.5 Odds',
+            'footystats_odds_over35': 'Over 3.5 Odds',
+            'footystats_odds_over05': 'Over 0.5 HT Odds'
+        }
         
-        st.write("**Active Range Filters:**")
-        for filter_desc in active_filters[:5]:  # Show first 5 filters
-            st.write(f"• {filter_desc}")
-        if len(active_filters) > 5:
-            st.write(f"• ... and {len(active_filters) - 5} more")
+        # Check each filter against defaults (only process min keys to avoid duplicates)
+        for filter_key in [k for k in defaults.keys() if k.endswith('_min')]:
+            current_min = st.session_state.filters.get(filter_key)
+            max_key = filter_key.replace('_min', '_max')
+            current_max = st.session_state.filters.get(max_key)
+            
+            if current_min is not None and current_max is not None:
+                default_min = defaults[filter_key]
+                default_max = defaults[max_key]
+                
+                # Use small epsilon for floating point comparison
+                epsilon = 0.001
+                min_changed = abs(current_min - default_min) > epsilon
+                max_changed = abs(current_max - default_max) > epsilon
+                
+                if min_changed or max_changed:
+                    filter_base = filter_key.replace('_min', '')
+                    label = filter_labels.get(filter_base, filter_base)
+                    active_filters.append(f"{label}: {current_min:.2f}-{current_max:.2f}")
+        
+        if active_filters:
+            st.write("**Active Range Filters:**")
+            for filter_desc in active_filters[:5]:  # Show first 5 filters
+                st.write(f"• {filter_desc}")
+            if len(active_filters) > 5:
+                st.write(f"• ... and {len(active_filters) - 5} more")
     
     with col3:
         st.metric("Total Matches", len(df))
