@@ -251,9 +251,18 @@ def render_match_browser_tab(df):
     # Check if we have simulation results and show only simulation matches
     if 'last_simulation_results' in st.session_state:
         sim_results = st.session_state.last_simulation_results
+        if sim_results is None:
+            st.info("👈 Enable auto-run in sidebar and change filters to see simulation results")
+            return
         valid_indices = sim_results.get('valid_row_indices', [])
         
         if valid_indices:
+            # Filter valid indices to only those that exist in current dataframe
+            valid_indices = [idx for idx in valid_indices if idx in df.index]
+            if not valid_indices:
+                st.warning("⚠️ Simulation results are outdated. Please run simulation again with current data.")
+                return
+            
             # Extract only the matches used in simulation
             df = df.loc[valid_indices].copy()
             
@@ -265,8 +274,15 @@ def render_match_browser_tab(df):
             
             # Show simulation info
             betting_method = sim_results['betting_method']
-            bet_stake = st.session_state.get('last_simulation_bet_stake', 10.0)
-            st.success(f"🎯 Showing {len(df)} matches from **{betting_method}** simulation (Stake: ${bet_stake})")
+            betting_config = sim_results['betting_config']
+            
+            # Format stake display based on staking method
+            if betting_config['method'] == 'Fixed Amount':
+                stake_display = f"Stake: ${betting_config['stake']:.2f}"
+            else:
+                stake_display = f"Stake: {betting_config['stake']:.1f}%"
+            
+            st.success(f"🎯 Showing {len(df)} matches from **{betting_method}** simulation ({stake_display})")
             
             # Add simulation summary
             col1, col2, col3, col4 = st.columns(4)
@@ -544,8 +560,8 @@ def reset_filters_to_defaults(betting_method):
         'team_a_xg_min': 0.0, 'team_a_xg_max': 3.0,
         'team_b_xg_min': 0.0, 'team_b_xg_max': 3.0,
         'xg_diff_min': -5.0, 'xg_diff_max': 5.0,
-        'avg_potential_min': 0.0, 'avg_potential_max': 3.0,
-        'btts_potential_min': 0.0, 'btts_potential_max': 3.0,
+        'avg_potential_min': 0.0, 'avg_potential_max': 10.0,
+        'btts_potential_min': 0.0, 'btts_potential_max': 1.0,
         'btts_fhg_min': 0.0, 'btts_fhg_max': 1.0,
         'btts_2hg_min': 0.0, 'btts_2hg_max': 1.0,
         'o15_potential_min': 0.0, 'o15_potential_max': 1.0,
@@ -721,44 +737,16 @@ def render_strategy_backtesting_tab(df):
         matches_with_odds = len(df[df['odds_btts_yes'].notna()]) if 'odds_btts_yes' in df.columns else 0
         st.metric("Matches with Odds", matches_with_odds)
     
-    # Auto-run simulation if triggered from sidebar button
-    auto_run = st.session_state.get('auto_run_simulation', False)
-    if auto_run:
-        st.info("🚀 Auto-running simulation from sidebar selection...")
+    # Auto-display existing simulation results if available
+    simulation_results = st.session_state.get('last_simulation_results')
+    betting_method_from_results = st.session_state.get('last_simulation_betting_method')
     
-    # Run simulation button
-    if st.button("🚀 Run Simulation", type="primary") or auto_run:
-        with st.spinner("Running betting simulation..."):
-            try:
-                # Parse scores for analysis
-                analysis_df = parse_all_scores(df.copy())
-                
-                if analysis_df.empty:
-                    st.warning("No matches found with current filters. Try relaxing the constraints.")
-                    return
-                
-                # Calculate simulation results based on betting method
-                betting_config = st.session_state.betting_config
-                simulation_results = run_betting_simulation(analysis_df, betting_method, betting_config)
-                
-                if simulation_results:
-                    # Store simulation results in session state for match browser integration
-                    st.session_state.last_simulation_results = simulation_results
-                    st.session_state.last_simulation_betting_method = betting_method
-                    st.session_state.last_simulation_betting_config = betting_config
-                    
-                    display_simulation_results(simulation_results, betting_method, betting_config)
-                else:
-                    st.warning("No valid bets found with current filters and odds.")
-                    
-            except Exception as e:
-                st.error(f"Error running simulation: {str(e)}")
-                import traceback
-                traceback.print_exc()
-            
-            # Reset auto-run simulation flag after execution (outside try-except)
-            if auto_run:
-                st.session_state.auto_run_simulation = False
+    # Display results if we have recent results that match current method
+    if simulation_results and betting_method_from_results == betting_method:
+        st.info("📊 Showing simulation results...")
+        display_simulation_results(simulation_results, betting_method, st.session_state.get('last_simulation_betting_config', {}))
+    elif not simulation_results:
+        st.info("👈 Click '🚀 Simulate' in sidebar to run simulation")
 
 def run_betting_simulation(df, betting_method, betting_config):
     """Run enhanced betting simulation with percentage staking and martingale"""
@@ -841,6 +829,10 @@ def run_betting_simulation(df, betting_method, betting_config):
     
     if valid_outcomes.empty:
         st.warning("No matches with valid odds found for current filters")
+        # Clear simulation results from session state to prevent display in other tabs
+        st.session_state.last_simulation_results = None
+        st.session_state.last_simulation_betting_method = None
+        st.session_state.last_simulation_betting_config = None
         return None
     
     # Initialize bankroll tracking
@@ -872,8 +864,8 @@ def run_betting_simulation(df, betting_method, betting_config):
     actual_stakes = []
     
     for i, (outcome, odds) in enumerate(zip(valid_outcomes, valid_odds)):
-        # Check if busted
-        if current_capital <= 0:
+        # Check if busted (90% loss - capital <= 10% of base)
+        if current_capital <= (base_capital * 0.1):
             busted = True
             break
         
@@ -1078,7 +1070,7 @@ def display_simulation_results(results, betting_method, betting_config):
         fig.add_hline(y=betting_config['base_capital'], line_dash="dash", line_color="green", 
                      annotation_text="Starting Capital")
         if results.get('busted', False):
-            fig.add_hline(y=0, line_dash="dash", line_color="red", annotation_text="Bust Level")
+            fig.add_hline(y=base_capital * 0.1, line_dash="dash", line_color="red", annotation_text="Bust Level")
         
         fig.update_layout(
             title="Bankroll Evolution Throughout Simulation",
@@ -1927,7 +1919,7 @@ def render_breakdown_analysis_tab(df):
     # Check if simulation results exist
     simulation_results = st.session_state.get('last_simulation_results')
     if not simulation_results or not simulation_results.get('valid_row_indices'):
-        st.info("👈 Run simulation first to see breakdown analysis")
+        st.info("👈 Enable auto-run in sidebar and change filters to see breakdown analysis")
         return
     
     # Get simulated matches only
@@ -3256,18 +3248,56 @@ try:
     # Update session state
     st.session_state.filters = filters
     
-    # Manual data loading - only run when sidebar button is clicked or flag is set
-    if st.session_state.should_run_simulation or st.session_state.current_data.empty:
+    # Data loading - only run when simulation button is clicked
+    if st.session_state.should_run_simulation:
         with st.spinner("Loading matched events..."):
             try:
                 df = get_matched_events(filters)
                 st.session_state.data = df
                 st.session_state.current_data = df
                 st.session_state.should_run_simulation = False  # Reset the flag
+                # Clear stale simulation results to prevent index mismatch
+                st.session_state.last_simulation_results = None
+                st.session_state.last_simulation_betting_method = None
+                st.session_state.last_simulation_betting_config = None
                 st.success(f"Loaded {len(df)} matches with current filters")
+                
+                # Automatically run simulation after data loads
+                if not df.empty:
+                    with st.spinner("Running betting simulation..."):
+                        try:
+                            # Parse scores for analysis
+                            analysis_df = parse_all_scores(df.copy())
+                            
+                            if analysis_df.empty:
+                                st.warning("No matches found with current filters. Try relaxing the constraints.")
+                            else:
+                                # Calculate simulation results based on betting method
+                                betting_method = st.session_state.filters.get('betting_method', 'BTTS at Fulltime')
+                                betting_config = st.session_state.betting_config
+                                simulation_results = run_betting_simulation(analysis_df, betting_method, betting_config)
+                                
+                                if simulation_results:
+                                    # Store simulation results in session state
+                                    st.session_state.last_simulation_results = simulation_results
+                                    st.session_state.last_simulation_betting_method = betting_method
+                                    st.session_state.last_simulation_betting_config = betting_config
+                                    
+                                    st.success(f"✅ Simulation complete! {simulation_results['valid_bets']} valid bets found.")
+                                else:
+                                    st.warning("No valid bets found with current filters and odds.")
+                                    # Clear simulation results from session state
+                                    st.session_state.last_simulation_results = None
+                                    st.session_state.last_simulation_betting_method = None
+                                    st.session_state.last_simulation_betting_config = None
+                                    
+                        except Exception as e:
+                            st.error(f"Error running simulation: {str(e)}")
+                            import traceback
+                            traceback.print_exc()
+                            
             except Exception as e:
                 st.sidebar.error(f"Error loading data: {str(e)}")
-                # Set empty data to prevent infinite loop on error
                 st.session_state.current_data = pd.DataFrame()
                 st.session_state.should_run_simulation = False
     
@@ -3281,9 +3311,8 @@ try:
     # Manual rerun button
     st.sidebar.markdown("---")
     
-    if st.sidebar.button("Simulate", type="primary", key="btn-simulate", width="stretch"):
+    if st.sidebar.button("🚀 Simulate", type="primary", key="btn-simulate", width="stretch"):
         st.session_state.should_run_simulation = True
-        st.session_state.auto_run_simulation = True
         st.rerun()
 
 except Exception as e:
