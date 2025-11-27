@@ -663,6 +663,7 @@ def render_strategy_backtesting_tab(df):
     # Get betting method and stake from filters
     betting_method = st.session_state.filters.get('betting_method', 'BTTS at Fulltime')
     bet_stake = st.session_state.filters.get('bet_stake', 10.0)
+    betting_config = st.session_state.betting_config
     
     # Display current filter summary
     st.subheader("📊 Current Simulation Parameters")
@@ -671,7 +672,13 @@ def render_strategy_backtesting_tab(df):
     
     with col1:
         st.metric("Betting Method", betting_method)
-        st.metric("Bet Stake", f"${bet_stake:.2f}")
+        # Show correct stake value based on staking method
+        if betting_config['method'] == 'Fixed Amount':
+            st.metric("Bet Stake", f"${bet_stake:.2f}")
+        else:
+            # Calculate initial stake for percentage staking
+            initial_stake = betting_config['base_capital'] * (bet_stake / 100.0)
+            st.metric("Bet Stake", f"{bet_stake:.1f}% (${initial_stake:.2f})")
     
     with col2:
         # Show active range filters
@@ -850,7 +857,7 @@ def run_betting_simulation(df, betting_method, betting_config):
         if config['method'] == 'Fixed Amount':
             base_stake = config['stake']
         else:
-            base_stake = capital * (config['stake'] / 1000.0)
+            base_stake = capital * (config['stake'] / 100.0)
         
         # Apply martingale if enabled
         if config['use_martingale'] and consecutive_losses > 0:
